@@ -81,8 +81,38 @@ button, .btn{
 }
 .btn-primary{ background:var(--emerald); border-color:var(--emerald); color:#08110D; font-weight:600; }
 .btn-primary:hover{ background:var(--emerald-dim); border-color:var(--emerald-dim); }
+.btn-danger{ border-color:var(--rust); color:var(--rust); }
+.btn-danger:hover{ background:rgba(176,83,42,0.12); border-color:var(--rust); }
 button:hover{ border-color:var(--text-dim); }
 button:disabled{ opacity:.45; cursor:not-allowed; }
+
+/* ---------- SCENARIOS ---------- */
+.scenario-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); }
+.scenario-card{ background:var(--panel); padding:20px; }
+.scenario-label{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); }
+.scenario-label.bear{ color:var(--rust); }
+.scenario-label.base{ color:var(--gold); }
+.scenario-label.bull{ color:var(--emerald); }
+.scenario-field{ display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.scenario-field label{ flex:1; font-size:12px; color:var(--text-dim); }
+.scenario-field input{ width:64px; background:var(--panel-alt); border:1px solid var(--border); color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:13px; padding:6px 8px; text-align:right; border-radius:var(--radius); }
+.scenario-field span{ font-size:12px; color:var(--text-dim); width:14px; }
+
+.scenario-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.scenario-table th, .scenario-table td{ padding:12px 14px; text-align:right; border-bottom:1px solid var(--border); }
+.scenario-table th:first-child, .scenario-table td:first-child{ text-align:left; }
+.scenario-table thead th{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em; font-weight:500; }
+.scenario-table td{ font-family:'IBM Plex Mono',monospace; }
+.scenario-table .row-bear td:first-child{ color:var(--rust); font-family:'Inter',sans-serif; font-weight:600; }
+.scenario-table .row-base td:first-child{ color:var(--gold); font-family:'Inter',sans-serif; font-weight:600; }
+.scenario-table .row-bull td:first-child{ color:var(--emerald); font-family:'Inter',sans-serif; font-weight:600; }
+.scenario-bars{ display:flex; gap:16px; align-items:flex-end; height:140px; margin-top:24px; padding-top:20px; }
+.scenario-bar-col{ flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.scenario-bar{ width:100%; border-radius:2px 2px 0 0; position:relative; }
+.scenario-bar.bear{ background:var(--rust); }
+.scenario-bar.base{ background:var(--gold); }
+.scenario-bar.bull{ background:var(--emerald); }
+.scenario-bar-val{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); }
 
 /* ---------- SECTIONS ---------- */
 section.block{ padding:64px 0; border-bottom:1px solid var(--border); }
@@ -214,7 +244,7 @@ footer a:hover{ color:var(--emerald); }
 }
 
 @media print{
-  header, .hero-actions, nav, footer, #inputSection, #ratioSection, #dcfSection, .report-actions{ display:none !important; }
+  header, .hero-actions, nav, footer, #inputSection, #ratioSection, #dcfSection, #scenarioSection, .report-actions{ display:none !important; }
   body{ background:#fff; color:#000; }
   .report-panel{ box-shadow:none; }
 }
@@ -233,6 +263,7 @@ footer a:hover{ color:var(--emerald); }
       <a href="#inputSection">Data</a>
       <a href="#ratioSection">Ratios</a>
       <a href="#dcfSection">Valuation</a>
+      <a href="#scenarioSection">Scenarios</a>
       <a href="#reportSection">Report</a>
     </nav>
   </div>
@@ -297,9 +328,10 @@ footer a:hover{ color:var(--emerald); }
     <div class="group-title">Cash flow</div>
     <div class="field-grid" id="cashGrid"></div>
 
-    <p class="currency-note">Fields marked with * are computed automatically once you calculate.</p>
+    <p class="currency-note">Fields marked with * are computed automatically once you calculate. Nothing you enter here is sent anywhere — it stays in this browser tab only, and disappears on refresh or when you click Wipe.</p>
     <div class="hero-actions" style="margin-top:24px;">
       <button class="btn-primary" onclick="runAnalysis()">Calculate ratios &amp; valuation</button>
+      <button onclick="wipeAllData()" class="btn-danger">Wipe all data</button>
     </div>
   </div>
 </section>
@@ -351,9 +383,43 @@ footer a:hover{ color:var(--emerald); }
   </div>
 </section>
 
+<section class="block" id="scenarioSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">04</span><h2>Scenario analysis</h2></div>
+    <p class="section-sub">Bear / Base / Bull cases run the same DCF engine at three different assumption sets side by side, so a single optimistic input can't quietly drive the whole valuation.</p>
+
+    <div class="scenario-grid" id="scenarioInputs">
+      <div class="scenario-card" data-scenario="bear">
+        <div class="scenario-label bear">Bear case</div>
+        <div class="scenario-field"><label>FCF growth (Yr 1–5)</label><input type="number" id="sc_bear_growth" value="2" step="0.5"><span>%</span></div>
+        <div class="scenario-field"><label>WACC</label><input type="number" id="sc_bear_wacc" value="13" step="0.5"><span>%</span></div>
+        <div class="scenario-field"><label>Terminal growth</label><input type="number" id="sc_bear_term" value="2" step="0.5"><span>%</span></div>
+      </div>
+      <div class="scenario-card" data-scenario="base">
+        <div class="scenario-label base">Base case</div>
+        <div class="scenario-field"><label>FCF growth (Yr 1–5)</label><input type="number" id="sc_base_growth" value="9" step="0.5"><span>%</span></div>
+        <div class="scenario-field"><label>WACC</label><input type="number" id="sc_base_wacc" value="11" step="0.5"><span>%</span></div>
+        <div class="scenario-field"><label>Terminal growth</label><input type="number" id="sc_base_term" value="4" step="0.5"><span>%</span></div>
+      </div>
+      <div class="scenario-card" data-scenario="bull">
+        <div class="scenario-label bull">Bull case</div>
+        <div class="scenario-field"><label>FCF growth (Yr 1–5)</label><input type="number" id="sc_bull_growth" value="16" step="0.5"><span>%</span></div>
+        <div class="scenario-field"><label>WACC</label><input type="number" id="sc_bull_wacc" value="9.5" step="0.5"><span>%</span></div>
+        <div class="scenario-field"><label>Terminal growth</label><input type="number" id="sc_bull_term" value="5" step="0.5"><span>%</span></div>
+      </div>
+    </div>
+
+    <div class="hero-actions" style="margin-top:20px;">
+      <button class="btn-primary" onclick="runScenarios()">Run scenario comparison</button>
+    </div>
+
+    <div id="scenarioOutput" style="margin-top:28px;"></div>
+  </div>
+</section>
+
 <section class="block" id="reportSection">
   <div class="wrap">
-    <div class="section-head"><span class="section-num">04</span><h2>Analyst report</h2></div>
+    <div class="section-head"><span class="section-num">05</span><h2>Analyst report</h2></div>
     <p class="section-sub">Generates a written commentary from the computed ratios and valuation — the deliverable, not just the spreadsheet behind it.</p>
 
     <div class="report-panel">
@@ -699,6 +765,111 @@ function computeGrade(c){
 
 // ---------- FOOTER YEAR ----------
 document.getElementById('copyrightLine').textContent = `© ${new Date().getFullYear()} Olive Capital. All rights reserved.`;
+
+// ---------- SCENARIO ANALYSIS (reuses the same dcfMath engine as the main DCF) ----------
+function runScenarios(){
+  const out = document.getElementById('scenarioOutput');
+  const ocfEntered = document.getElementById('ocf_c').value !== '';
+  const capexEntered = document.getElementById('capex_c').value !== '';
+
+  if(!ocfEntered || !capexEntered){
+    out.innerHTML = `<div class="dcf-warning">Scenario analysis needs a base year free cash flow, which requires Operating Cash Flow and Capital Expenditure. Enter both in the Data section above, then run this again.</div>`;
+    return;
+  }
+
+  const baseFCF = num('ocf_c') - num('capex_c');
+  const cash = num('cash_c'), debt = num('debt_c'), shares = num('shares_c');
+  const netDebt = debt - cash;
+  const unit = document.getElementById('currencyUnit').value || 'units';
+
+  const cases = ['bear','base','bull'].map(key => {
+    const growth = parseFloat(document.getElementById(`sc_${key}_growth`).value)/100 || 0;
+    const wacc = parseFloat(document.getElementById(`sc_${key}_wacc`).value)/100 || 0.11;
+    const term = parseFloat(document.getElementById(`sc_${key}_term`).value)/100 || 0;
+    if(wacc <= term){
+      return { key, invalid:true };
+    }
+    const { ev } = dcfMath(baseFCF, wacc, growth, term);
+    const equityValue = ev - netDebt;
+    const perShare = shares ? equityValue/shares : NaN;
+    return { key, growth, wacc, term, ev, equityValue, perShare, invalid:false };
+  });
+
+  if(cases.some(c=>c.invalid)){
+    out.innerHTML = `<div class="dcf-warning">One or more scenarios has terminal growth ≥ WACC, which breaks the terminal value formula. Adjust that scenario's inputs so WACC is higher than terminal growth.</div>`;
+    return;
+  }
+
+  const rows = cases.map(c => `
+    <tr class="row-${c.key}">
+      <td>${c.key.charAt(0).toUpperCase()+c.key.slice(1)}</td>
+      <td>${pct(c.wacc)}</td>
+      <td>${pct(c.growth)}</td>
+      <td>${pct(c.term)}</td>
+      <td>${fmt(c.ev)}</td>
+      <td>${fmt(c.equityValue)}</td>
+      <td>${shares ? fmt(c.perShare) : '—'}</td>
+    </tr>
+  `).join('');
+
+  const maxEq = Math.max(...cases.map(c=>Math.abs(c.equityValue)), 1);
+  const bars = cases.map(c => {
+    const h = Math.max(6, (Math.abs(c.equityValue)/maxEq)*100);
+    return `<div class="scenario-bar-col">
+      <div class="scenario-bar-val mono">${fmt(c.equityValue)}</div>
+      <div class="scenario-bar ${c.key}" style="height:${h}px;"></div>
+      <div class="scenario-bar-val">${c.key.charAt(0).toUpperCase()+c.key.slice(1)}</div>
+    </div>`;
+  }).join('');
+
+  const spread = cases[2].equityValue - cases[0].equityValue;
+  const spreadPct = cases[1].equityValue ? (spread/Math.abs(cases[1].equityValue)*100).toFixed(0) : '—';
+
+  out.innerHTML = `
+    <table class="scenario-table">
+      <thead><tr><th>Scenario</th><th>WACC</th><th>FCF growth</th><th>Terminal g</th><th>Enterprise value</th><th>Equity value</th><th>Per share</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="scenario-bars">${bars}</div>
+    <p class="currency-note" style="margin-top:18px;">Spread between bull and bear equity value: ${fmt(spread)} ${unit} (~${spreadPct}% of the base case) — the width of this range says as much about the company's risk as any single number does.</p>
+  `;
+}
+
+// ---------- WIPE ALL DATA ----------
+function wipeAllData(){
+  if(!confirm('This clears every field you have entered and resets the tool. Continue?')) return;
+
+  document.querySelectorAll('#incomeGrid input, #balanceGrid input, #cashGrid input').forEach(el => el.value = '');
+  document.getElementById('companyName').value = '';
+  document.getElementById('currencyUnit').value = '';
+
+  lastRatios = null;
+  lastDCF = null;
+
+  document.getElementById('ratioGroups').innerHTML = `
+    <div class="ratio-cat"><h3>Liquidity</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+    <div class="ratio-cat"><h3>Profitability</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+    <div class="ratio-cat"><h3>Leverage</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+    <div class="ratio-cat"><h3>Efficiency</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+  `;
+  document.getElementById('dcfOutputCol').innerHTML = `
+    <div class="output-label">Estimated intrinsic equity value</div>
+    <div class="output-big mono">—</div>
+    <div class="dcf-row"><span>Run the calculation above to populate this panel.</span><span class="v"></span></div>
+  `;
+  document.getElementById('fcfBars').innerHTML = '';
+  document.getElementById('sensitivityMatrix').innerHTML = '';
+  document.getElementById('scenarioOutput').innerHTML = '';
+
+  document.getElementById('reportCompany').textContent = 'Company name';
+  const body = document.getElementById('reportBody');
+  body.textContent = 'Run the calculation above, then click "Generate analyst note" to produce a written commentary here.';
+  body.classList.add('placeholder');
+  document.getElementById('stamp').classList.remove('show');
+  document.getElementById('stampGrade').textContent = '—';
+
+  document.getElementById('inputSection').scrollIntoView({behavior:'smooth'});
+}
 
 // ---------- MAIN CALCULATE ----------
 function runAnalysis(){
