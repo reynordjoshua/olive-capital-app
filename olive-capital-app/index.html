@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Olive Capital — Autonomous Financial Analyst</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#0D1117;
+  --panel:#141A22;
+  --panel-alt:#1B222C;
+  --paper:#F3EFE6;
+  --ink-on-paper:#221D16;
+  --text:#E7E4DC;
+  --text-dim:#8B93A0;
+  --emerald:#2F8F6F;
+  --emerald-dim:#1F6752;
+  --rust:#B0532A;
+  --gold:#C7A25C;
+  --border:#262E39;
+  --radius:2px;
+}
+
+*{box-sizing:border-box; margin:0; padding:0;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter', sans-serif;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+.mono{ font-family:'IBM Plex Mono', monospace; }
+
+.wrap{ max-width:1080px; margin:0 auto; padding:0 28px; }
+
+/* ---------- HEADER ---------- */
+header{
+  border-bottom:1px solid var(--border);
+  padding:20px 0;
+  position:sticky; top:0; z-index:50;
+  background:rgba(13,17,23,0.92);
+  backdrop-filter:blur(6px);
+}
+header .wrap{ display:flex; align-items:center; justify-content:space-between; }
+.brand{ display:flex; align-items:center; gap:10px; }
+.logo-img{ height:34px; width:auto; border-radius:3px; }
+.wordmark{ font-family:'IBM Plex Mono', monospace; font-weight:600; font-size:15px; letter-spacing:0.08em; }
+.wordmark span{ color:var(--emerald); }
+nav a{ color:var(--text-dim); text-decoration:none; font-size:13px; margin-left:24px; font-family:'IBM Plex Mono',monospace; letter-spacing:.03em; }
+nav a:hover{ color:var(--text); }
+
+/* ---------- HERO ---------- */
+.hero{ padding:88px 0 64px; border-bottom:1px solid var(--border); }
+.eyebrow{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--gold); letter-spacing:.12em; text-transform:uppercase; margin-bottom:18px; }
+h1{
+  font-family:'Fraunces', serif;
+  font-weight:500;
+  font-size:56px;
+  line-height:1.05;
+  max-width:760px;
+  letter-spacing:-0.01em;
+}
+h1 em{ font-style:italic; color:var(--emerald); }
+.hero p{ color:var(--text-dim); max-width:520px; margin-top:22px; font-size:16px; }
+.hero-actions{ margin-top:32px; display:flex; gap:14px; }
+button, .btn{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:13px;
+  letter-spacing:.03em;
+  padding:12px 20px;
+  border-radius:var(--radius);
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text);
+  cursor:pointer;
+  transition:all .15s ease;
+}
+.btn-primary{ background:var(--emerald); border-color:var(--emerald); color:#08110D; font-weight:600; }
+.btn-primary:hover{ background:var(--emerald-dim); border-color:var(--emerald-dim); }
+button:hover{ border-color:var(--text-dim); }
+button:disabled{ opacity:.45; cursor:not-allowed; }
+
+/* ---------- SECTIONS ---------- */
+section.block{ padding:64px 0; border-bottom:1px solid var(--border); }
+.section-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:8px; }
+.section-num{ font-family:'IBM Plex Mono', monospace; color:var(--text-dim); font-size:13px; }
+h2{ font-family:'Fraunces', serif; font-weight:500; font-size:28px; }
+.section-sub{ color:var(--text-dim); font-size:14px; margin-bottom:36px; max-width:600px; }
+
+/* ---------- INPUT PANEL ---------- */
+.tabs{ display:flex; gap:8px; margin-bottom:28px; }
+.tab{ font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 14px; border:1px solid var(--border); border-radius:var(--radius); color:var(--text-dim); cursor:pointer; }
+.tab.active{ color:var(--text); border-color:var(--emerald); }
+
+.field-grid{ display:grid; grid-template-columns:1.6fr .9fr .9fr; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.field-grid .head{ background:var(--panel-alt); padding:10px 14px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+.field-grid .label{ background:var(--panel); padding:10px 14px; font-size:13px; display:flex; align-items:center; }
+.field-grid input{
+  background:var(--panel); border:none; color:var(--text); font-family:'IBM Plex Mono',monospace;
+  font-size:13px; padding:10px 14px; width:100%; text-align:right;
+}
+.field-grid input:focus{ outline:none; background:var(--panel-alt); }
+.group-title{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold); text-transform:uppercase; letter-spacing:.08em; margin:26px 0 10px; }
+.group-title:first-child{ margin-top:0; }
+.company-row{ display:flex; gap:12px; margin-bottom:24px; align-items:center; }
+.company-row input{
+  background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:'Fraunces',serif; font-size:18px;
+  padding:10px 14px; border-radius:var(--radius); flex:1;
+}
+.currency-note{ font-size:12px; color:var(--text-dim); margin-top:10px; }
+
+/* ---------- RATIO CARDS ---------- */
+.ratio-groups{ display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); border:1px solid var(--border); }
+.ratio-cat{ background:var(--panel); padding:22px; }
+.ratio-cat h3{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; margin-bottom:18px; }
+.ratio-item{ margin-bottom:16px; }
+.ratio-item:last-child{ margin-bottom:0; }
+.ratio-label{ font-size:12px; color:var(--text-dim); margin-bottom:3px; }
+.ratio-value{ font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; }
+.ratio-trend{ font-size:11px; margin-left:8px; }
+.trend-up{ color:var(--emerald); }
+.trend-down{ color:var(--rust); }
+
+/* ---------- DCF ---------- */
+.dcf-layout{ display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); border:1px solid var(--border); }
+.dcf-col{ background:var(--panel); padding:26px; }
+.slider-row{ margin-bottom:22px; }
+.slider-row label{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px; }
+.slider-row .val{ font-family:'IBM Plex Mono',monospace; color:var(--gold); }
+input[type=range]{ width:100%; accent-color:var(--emerald); }
+.output-big{ font-family:'Fraunces',serif; font-size:44px; color:var(--emerald); margin:6px 0; }
+.output-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+.fcf-bars{ display:flex; align-items:flex-end; gap:8px; height:120px; margin-top:20px; }
+.fcf-bar{ flex:1; background:var(--emerald-dim); border-radius:2px 2px 0 0; position:relative; }
+.fcf-bar span{ position:absolute; top:-20px; left:0; right:0; text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); }
+.dcf-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.dcf-row:last-child{ border-bottom:none; }
+.dcf-row .v{ font-family:'IBM Plex Mono',monospace; }
+
+/* ---------- REPORT / PAPER ---------- */
+.report-panel{ background:var(--paper); color:var(--ink-on-paper); border-radius:var(--radius); padding:0; position:relative; overflow:hidden; }
+.report-inner{ padding:44px 48px; }
+.report-head{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid var(--ink-on-paper); padding-bottom:18px; margin-bottom:24px; }
+.report-head h3{ font-family:'Fraunces',serif; font-size:24px; font-weight:600; }
+.report-head .meta{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:#5b5548; text-align:right; }
+.report-body{ font-size:15px; line-height:1.75; white-space:pre-wrap; min-height:80px; }
+.report-body.placeholder{ color:#8a8272; font-style:italic; }
+.stamp{
+  position:absolute; top:34px; right:48px; width:96px; height:96px;
+  border:3px solid var(--rust); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  transform:rotate(-9deg); opacity:0; transition:opacity .4s ease;
+  font-family:'IBM Plex Mono',monospace; color:var(--rust);
+}
+.stamp.show{ opacity:.88; }
+.stamp .grade{ font-size:30px; font-weight:700; line-height:1; }
+.stamp .tag{ font-size:8px; letter-spacing:.08em; margin-top:2px; }
+.report-actions{ display:flex; gap:12px; margin-top:28px; padding:0 48px 40px; }
+.report-actions button{ color:var(--ink-on-paper); border-color:#c9c1ae; }
+
+/* ---------- ABOUT ---------- */
+.about-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); margin-top:8px; }
+.about-card{ background:var(--panel); padding:22px; }
+.about-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold); text-transform:uppercase; letter-spacing:.08em; margin-bottom:10px; }
+.about-card p{ font-size:13.5px; color:var(--text-dim); line-height:1.65; }
+.contact-row{ display:flex; gap:40px; margin-top:32px; flex-wrap:wrap; }
+.contact-item{ display:flex; flex-direction:column; gap:4px; }
+.contact-label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em; }
+.contact-item a{ color:var(--emerald); text-decoration:none; font-size:14px; }
+.contact-item a:hover{ text-decoration:underline; }
+
+/* ---------- FOOTER ---------- */
+footer{ padding:32px 0 40px; }
+footer .wrap{ display:flex; justify-content:space-between; align-items:flex-end; font-size:12px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace; flex-wrap:wrap; gap:12px; }
+footer .foot-left{ display:flex; flex-direction:column; gap:4px; }
+footer .foot-right{ text-align:right; display:flex; flex-direction:column; gap:4px; }
+footer a{ color:var(--text-dim); text-decoration:none; }
+footer a:hover{ color:var(--emerald); }
+
+@media (max-width: 860px){
+  h1{ font-size:38px; }
+  .about-grid{ grid-template-columns:1fr; }
+  .logo-img{ height:28px; }
+  footer .wrap{ flex-direction:column; align-items:flex-start; }
+  footer .foot-right{ text-align:left; }
+  .field-grid{ grid-template-columns:1.4fr .8fr .8fr; }
+  .ratio-groups{ grid-template-columns:1fr 1fr; }
+  .dcf-layout{ grid-template-columns:1fr; }
+  .report-inner{ padding:28px 20px; }
+  .report-actions{ padding:0 20px 28px; }
+  .stamp{ right:20px; top:20px; width:76px; height:76px; }
+  .stamp .grade{ font-size:22px; }
+}
+
+@media print{
+  header, .hero-actions, nav, footer, #inputSection, #ratioSection, #dcfSection, .report-actions{ display:none !important; }
+  body{ background:#fff; color:#000; }
+  .report-panel{ box-shadow:none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <img src="data:image/jpeg;base64,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" alt="Olive Capital logo" class="logo-img">
+      <div class="wordmark">OLIVE<span>//</span>CAPITAL</div>
+    </div>
+    <nav>
+      <a href="#aboutSection">About</a>
+      <a href="#inputSection">Data</a>
+      <a href="#ratioSection">Ratios</a>
+      <a href="#dcfSection">Valuation</a>
+      <a href="#reportSection">Report</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Autonomous Financial Analyst</div>
+    <h1>Feed it a balance sheet.<br>Get back an <em>analyst's verdict.</em></h1>
+    <p>Enter any company's financial statements and this tool computes the full ratio set, runs a discounted cash flow valuation, and generates a written analyst note — the same workflow a junior analyst does by hand, done live.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="loadSample()">Load sample company</button>
+      <button onclick="document.getElementById('inputSection').scrollIntoView({behavior:'smooth'})">Enter my own data</button>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="aboutSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">00</span><h2>About Olive Capital</h2></div>
+    <p class="section-sub" style="max-width:680px;">Olive Capital is an independent financial analysis practice built around one idea: judgment backed by numbers, not numbers instead of judgment. We build the models and tools we use ourselves — this Autonomous Financial Analyst is one of them, developed in-house to turn raw financial statements into a ratio read, a valuation, and a written verdict in minutes rather than hours.</p>
+
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="about-label">What we work on</div>
+        <p>Financial statement analysis, valuation modeling (DCF &amp; scenario-based), budgeting and forecasting, KPI reporting, and building the automation tools that make analyst work faster and more consistent.</p>
+      </div>
+      <div class="about-card">
+        <div class="about-label">Vision</div>
+        <p>A world where rigorous financial analysis isn't gated behind large teams and expensive terminals — where a single well-built model can do the work of a desk.</p>
+      </div>
+      <div class="about-card">
+        <div class="about-label">Mission</div>
+        <p>To build practical, transparent financial tools — grounded in real accounting and valuation methodology — that help people read a company's numbers clearly and make better decisions faster.</p>
+      </div>
+    </div>
+
+    <div class="contact-row">
+      <div class="contact-item"><span class="contact-label">Phone</span><a href="tel:+919901606745">+91 99016 06745</a></div>
+      <div class="contact-item"><span class="contact-label">Email</span><a href="mailto:reynordjoshua@gmail.com">reynordjoshua@gmail.com</a></div>
+      <div class="contact-item"><span class="contact-label">LinkedIn</span><a href="https://www.linkedin.com/in/reynord-joshua-k-86b37b290" target="_blank" rel="noopener">linkedin.com/in/reynord-joshua-k</a></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="inputSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">01</span><h2>Financial statement inputs</h2></div>
+    <p class="section-sub">Two periods, side by side, so the model can read trend direction — not just a snapshot. All figures in the same currency unit (e.g. ₹ lakh, ₹ crore, $ thousand).</p>
+
+    <div class="company-row">
+      <input id="companyName" placeholder="Company name (e.g. Aster Retail Ltd.)" />
+      <input id="currencyUnit" placeholder="Unit (e.g. ₹ Cr)" style="max-width:160px;" />
+    </div>
+
+    <div class="group-title">Income statement</div>
+    <div class="field-grid" id="incomeGrid"></div>
+
+    <div class="group-title">Balance sheet</div>
+    <div class="field-grid" id="balanceGrid"></div>
+
+    <div class="group-title">Cash flow</div>
+    <div class="field-grid" id="cashGrid"></div>
+
+    <p class="currency-note">Fields marked with * are computed automatically once you calculate.</p>
+    <div class="hero-actions" style="margin-top:24px;">
+      <button class="btn-primary" onclick="runAnalysis()">Calculate ratios &amp; valuation</button>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="ratioSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">02</span><h2>Ratio dashboard</h2></div>
+    <p class="section-sub">Current period vs. prior period. Arrows show direction of travel, not whether it's good — read them against the category.</p>
+    <div class="ratio-groups" id="ratioGroups">
+      <div class="ratio-cat"><h3>Liquidity</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+      <div class="ratio-cat"><h3>Profitability</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+      <div class="ratio-cat"><h3>Leverage</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+      <div class="ratio-cat"><h3>Efficiency</h3><div class="ratio-item"><div class="ratio-value mono">—</div></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="dcfSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">03</span><h2>Discounted cash flow valuation</h2></div>
+    <p class="section-sub">Base year free cash flow is projected forward, discounted at your chosen WACC, and combined with a terminal value. Adjust the assumptions live.</p>
+    <div class="dcf-layout">
+      <div class="dcf-col">
+        <div class="slider-row">
+          <label>WACC (discount rate) <span class="val" id="waccVal">11%</span></label>
+          <input type="range" id="waccSlider" min="5" max="20" value="11" oninput="updateDCF()">
+        </div>
+        <div class="slider-row">
+          <label>Yr 1–5 FCF growth <span class="val" id="growthVal">9%</span></label>
+          <input type="range" id="growthSlider" min="-10" max="30" value="9" oninput="updateDCF()">
+        </div>
+        <div class="slider-row">
+          <label>Terminal growth <span class="val" id="termVal">4%</span></label>
+          <input type="range" id="termSlider" min="0" max="8" value="4" oninput="updateDCF()">
+        </div>
+        <div class="fcf-bars" id="fcfBars"></div>
+      </div>
+      <div class="dcf-col">
+        <div class="output-label">Estimated intrinsic equity value</div>
+        <div class="output-big mono" id="equityValueOut">—</div>
+        <div class="dcf-row"><span>Enterprise value</span><span class="v" id="evOut">—</span></div>
+        <div class="dcf-row"><span>Net debt</span><span class="v" id="netDebtOut">—</span></div>
+        <div class="dcf-row"><span>Equity value</span><span class="v" id="eqOut">—</span></div>
+        <div class="dcf-row"><span>Per share (if shares given)</span><span class="v" id="perShareOut">—</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="reportSection">
+  <div class="wrap">
+    <div class="section-head"><span class="section-num">04</span><h2>Analyst report</h2></div>
+    <p class="section-sub">Generates a written commentary from the computed ratios and valuation — the deliverable, not just the spreadsheet behind it.</p>
+
+    <div class="report-panel">
+      <div class="stamp" id="stamp"><div class="grade" id="stampGrade">—</div><div class="tag">MODEL SCORE</div></div>
+      <div class="report-inner">
+        <div class="report-head">
+          <h3 id="reportCompany">Company name</h3>
+          <div class="meta" id="reportMeta">PREPARED — <span id="reportDate"></span><br>OLIVE CAPITAL MODEL</div>
+        </div>
+        <div class="report-body placeholder" id="reportBody">Run the calculation above, then click "Generate analyst note" to produce a written commentary here.</div>
+      </div>
+      <div class="report-actions">
+        <button class="btn-primary" id="generateBtn" onclick="generateReport()">Generate analyst note</button>
+        <button onclick="window.print()">Download / print report</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-left">
+      <span>OLIVE CAPITAL</span>
+      <span id="copyrightLine">© 2026 Olive Capital. All rights reserved.</span>
+    </div>
+    <div class="foot-right">
+      <span>Built by Reynord Joshua K — Financial Modeling · Python · Power BI</span>
+      <span><a href="mailto:reynordjoshua@gmail.com">reynordjoshua@gmail.com</a> · <a href="tel:+919901606745">+91 99016 06745</a> · <a href="https://www.linkedin.com/in/reynord-joshua-k-86b37b290" target="_blank" rel="noopener">LinkedIn</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ---------- FIELD DEFINITIONS ----------
+const incomeFields = [
+  ['rev','Revenue'], ['cogs','Cost of goods sold'], ['opex','Operating expenses'],
+  ['interest','Interest expense'], ['tax','Tax expense']
+];
+const balanceFields = [
+  ['ca','Current assets'], ['cl','Current liabilities'], ['inv','Inventory'],
+  ['ta','Total assets'], ['tl','Total liabilities'], ['te','Total equity'],
+  ['cash','Cash & equivalents'], ['debt','Total debt']
+];
+const cashFields = [
+  ['ocf','Operating cash flow'], ['capex','Capital expenditure']
+];
+
+function buildGrid(containerId, fields){
+  const el = document.getElementById(containerId);
+  let html = `<div class="head">Line item</div><div class="head" style="text-align:right;">Current yr</div><div class="head" style="text-align:right;">Prior yr</div>`;
+  fields.forEach(([id,label])=>{
+    html += `<div class="label">${label}</div>
+      <div><input type="number" id="${id}_c" placeholder="0"></div>
+      <div><input type="number" id="${id}_p" placeholder="0"></div>`;
+  });
+  el.innerHTML = html;
+}
+buildGrid('incomeGrid', incomeFields);
+buildGrid('balanceGrid', balanceFields);
+buildGrid('cashGrid', cashFields);
+
+// extra fields not in the 2-col layout: shares outstanding
+(function addShares(){
+  const el = document.getElementById('balanceGrid');
+  el.innerHTML += `<div class="label">Shares outstanding (optional)</div>
+    <div><input type="number" id="shares_c" placeholder="0"></div><div></div>`;
+})();
+
+// ---------- SAMPLE DATA ----------
+function loadSample(){
+  document.getElementById('companyName').value = "Aster Retail Ltd.";
+  document.getElementById('currencyUnit').value = "₹ Cr";
+  const sample = {
+    rev_c:4200, rev_p:3600, cogs_c:2520, cogs_p:2260, opex_c:860, opex_p:780,
+    interest_c:140, interest_p:150, tax_c:180, tax_p:140,
+    ca_c:1850, ca_p:1600, cl_c:980, cl_p:900, inv_c:420, inv_p:380,
+    ta_c:5200, ta_p:4700, tl_c:3100, tl_p:2900, te_c:2100, te_p:1800,
+    cash_c:380, cash_p:300, debt_c:1600, debt_p:1550,
+    ocf_c:560, ocf_p:470, capex_c:210, capex_p:190, shares_c:50
+  };
+  Object.entries(sample).forEach(([k,v])=>{ const f=document.getElementById(k); if(f) f.value=v; });
+  document.getElementById('inputSection').scrollIntoView({behavior:'smooth'});
+}
+
+// ---------- HELPERS ----------
+const num = id => parseFloat(document.getElementById(id).value) || 0;
+const fmt = n => {
+  if(!isFinite(n)) return '—';
+  return n.toLocaleString('en-IN', {maximumFractionDigits:2});
+};
+const pct = n => (n*100).toFixed(1)+'%';
+
+let lastRatios = null;
+let lastDCF = null;
+
+// ---------- RATIO ENGINE ----------
+function computePeriod(p){
+  const rev = num('rev_'+p), cogs = num('cogs_'+p), opex = num('opex_'+p),
+        interest = num('interest_'+p), tax = num('tax_'+p),
+        ca = num('ca_'+p), cl = num('cl_'+p), inv = num('inv_'+p),
+        ta = num('ta_'+p), tl = num('tl_'+p), te = num('te_'+p),
+        cash = num('cash_'+p), debt = num('debt_'+p);
+
+  const ebit = rev - cogs - opex;
+  const netIncome = ebit - interest - tax;
+
+  return {
+    currentRatio: cl ? ca/cl : NaN,
+    quickRatio: cl ? (ca-inv)/cl : NaN,
+    workingCapital: ca-cl,
+    grossMargin: rev ? (rev-cogs)/rev : NaN,
+    netMargin: rev ? netIncome/rev : NaN,
+    roe: te ? netIncome/te : NaN,
+    roa: ta ? netIncome/ta : NaN,
+    debtToEquity: te ? debt/te : NaN,
+    interestCoverage: interest ? ebit/interest : NaN,
+    assetTurnover: ta ? rev/ta : NaN,
+    ebit, netIncome, rev, cash, debt, ta, te
+  };
+}
+
+function trendArrow(curr, prev, higherIsBetter=true){
+  if(!isFinite(curr) || !isFinite(prev)) return '';
+  const up = curr > prev;
+  const good = higherIsBetter ? up : !up;
+  const arrow = up ? '▲' : '▼';
+  return `<span class="ratio-trend ${good?'trend-up':'trend-down'}">${arrow} vs prior</span>`;
+}
+
+function renderRatios(c, p){
+  const groups = document.getElementById('ratioGroups');
+  groups.innerHTML = `
+    <div class="ratio-cat"><h3>Liquidity</h3>
+      <div class="ratio-item"><div class="ratio-label">Current ratio</div><div class="ratio-value mono">${fmt(c.currentRatio)}×${trendArrow(c.currentRatio,p.currentRatio)}</div></div>
+      <div class="ratio-item"><div class="ratio-label">Quick ratio</div><div class="ratio-value mono">${fmt(c.quickRatio)}×${trendArrow(c.quickRatio,p.quickRatio)}</div></div>
+      <div class="ratio-item"><div class="ratio-label">Working capital</div><div class="ratio-value mono">${fmt(c.workingCapital)}${trendArrow(c.workingCapital,p.workingCapital)}</div></div>
+    </div>
+    <div class="ratio-cat"><h3>Profitability</h3>
+      <div class="ratio-item"><div class="ratio-label">Gross margin</div><div class="ratio-value mono">${pct(c.grossMargin)}${trendArrow(c.grossMargin,p.grossMargin)}</div></div>
+      <div class="ratio-item"><div class="ratio-label">Net margin</div><div class="ratio-value mono">${pct(c.netMargin)}${trendArrow(c.netMargin,p.netMargin)}</div></div>
+      <div class="ratio-item"><div class="ratio-label">Return on equity</div><div class="ratio-value mono">${pct(c.roe)}${trendArrow(c.roe,p.roe)}</div></div>
+      <div class="ratio-item"><div class="ratio-label">Return on assets</div><div class="ratio-value mono">${pct(c.roa)}${trendArrow(c.roa,p.roa)}</div></div>
+    </div>
+    <div class="ratio-cat"><h3>Leverage</h3>
+      <div class="ratio-item"><div class="ratio-label">Debt-to-equity</div><div class="ratio-value mono">${fmt(c.debtToEquity)}×${trendArrow(c.debtToEquity,p.debtToEquity,false)}</div></div>
+      <div class="ratio-item"><div class="ratio-label">Interest coverage</div><div class="ratio-value mono">${fmt(c.interestCoverage)}×${trendArrow(c.interestCoverage,p.interestCoverage)}</div></div>
+    </div>
+    <div class="ratio-cat"><h3>Efficiency</h3>
+      <div class="ratio-item"><div class="ratio-label">Asset turnover</div><div class="ratio-value mono">${fmt(c.assetTurnover)}×${trendArrow(c.assetTurnover,p.assetTurnover)}</div></div>
+    </div>
+  `;
+}
+
+// ---------- DCF ENGINE ----------
+function updateDCF(){
+  const wacc = document.getElementById('waccSlider').value/100;
+  const growth = document.getElementById('growthSlider').value/100;
+  const term = document.getElementById('termSlider').value/100;
+  document.getElementById('waccVal').textContent = pct(wacc);
+  document.getElementById('growthVal').textContent = pct(growth);
+  document.getElementById('termVal').textContent = pct(term);
+
+  if(!lastRatios){ return; }
+
+  const baseFCF = num('ocf_c') - num('capex_c');
+  const cash = num('cash_c'), debt = num('debt_c'), shares = num('shares_c');
+
+  let pvSum = 0;
+  const yearly = [];
+  let fcf = baseFCF;
+  for(let y=1; y<=5; y++){
+    fcf = fcf * (1+growth);
+    const pv = fcf / Math.pow(1+wacc, y);
+    pvSum += pv;
+    yearly.push({year:y, fcf, pv});
+  }
+  const tv = (fcf * (1+term)) / (wacc - term);
+  const pvTV = tv / Math.pow(1+wacc, 5);
+  const ev = pvSum + pvTV;
+  const netDebt = debt - cash;
+  const equityValue = ev - netDebt;
+  const perShare = shares ? equityValue/shares : NaN;
+
+  lastDCF = {yearly, pvTV, ev, netDebt, equityValue, perShare, wacc, growth, term};
+
+  document.getElementById('equityValueOut').textContent = fmt(equityValue);
+  document.getElementById('evOut').textContent = fmt(ev);
+  document.getElementById('netDebtOut').textContent = fmt(netDebt);
+  document.getElementById('eqOut').textContent = fmt(equityValue);
+  document.getElementById('perShareOut').textContent = shares ? fmt(perShare) : '— (add shares)';
+
+  const bars = document.getElementById('fcfBars');
+  const maxPv = Math.max(...yearly.map(y=>y.pv), 1);
+  bars.innerHTML = yearly.map(y => {
+    const h = Math.max(6, (y.pv/maxPv)*100);
+    return `<div class="fcf-bar" style="height:${h}%;"><span>Y${y.year}</span></div>`;
+  }).join('');
+}
+
+// ---------- SCORE / GRADE ----------
+function computeGrade(c){
+  let score = 50;
+  if(isFinite(c.currentRatio)) score += (c.currentRatio >= 1.5 ? 10 : c.currentRatio >= 1 ? 4 : -10);
+  if(isFinite(c.netMargin)) score += (c.netMargin >= 0.12 ? 12 : c.netMargin >= 0.05 ? 5 : c.netMargin >= 0 ? -2 : -14);
+  if(isFinite(c.roe)) score += (c.roe >= 0.18 ? 10 : c.roe >= 0.1 ? 4 : -6);
+  if(isFinite(c.debtToEquity)) score += (c.debtToEquity <= 0.6 ? 10 : c.debtToEquity <= 1.2 ? 2 : -10);
+  if(isFinite(c.interestCoverage)) score += (c.interestCoverage >= 6 ? 8 : c.interestCoverage >= 2.5 ? 2 : -12);
+  score = Math.max(0, Math.min(100, score));
+  let grade;
+  if(score >= 85) grade = 'AA';
+  else if(score >= 70) grade = 'A';
+  else if(score >= 55) grade = 'BBB';
+  else if(score >= 40) grade = 'BB';
+  else grade = 'B';
+  return {score, grade};
+}
+
+// ---------- FOOTER YEAR ----------
+document.getElementById('copyrightLine').textContent = `© ${new Date().getFullYear()} Olive Capital. All rights reserved.`;
+
+// ---------- MAIN CALCULATE ----------
+function runAnalysis(){
+  const c = computePeriod('c');
+  const p = computePeriod('p');
+  lastRatios = {current:c, previous:p};
+  renderRatios(c, p);
+  updateDCF();
+
+  const company = document.getElementById('companyName').value || 'Unnamed company';
+  document.getElementById('reportCompany').textContent = company;
+  document.getElementById('reportDate').textContent = new Date().toLocaleDateString('en-IN', {year:'numeric', month:'long', day:'numeric'});
+
+  const {grade} = computeGrade(c);
+  const stamp = document.getElementById('stamp');
+  document.getElementById('stampGrade').textContent = grade;
+  stamp.classList.add('show');
+
+  document.getElementById('ratioSection').scrollIntoView({behavior:'smooth'});
+}
+
+// ---------- RULE-BASED COMMENTARY ENGINE (no AI, no API, works fully offline) ----------
+function buildCommentary(company, unit, c, p, d, gradeInfo){
+  const pctStr = n => isFinite(n) ? (n*100).toFixed(1)+'%' : 'not available';
+  const xStr = n => isFinite(n) ? n.toFixed(2)+'×' : 'not available';
+  const sentences = [];
+
+  // 1. Verdict
+  const verdictWord = gradeInfo.score >= 70 ? 'financially sound'
+                     : gradeInfo.score >= 55 ? 'reasonably stable with pockets of risk'
+                     : gradeInfo.score >= 40 ? 'under moderate financial strain'
+                     : 'showing significant financial stress';
+  sentences.push(`${company} appears ${verdictWord} on the metrics computed here, corresponding to a model-assigned grade of ${gradeInfo.grade} (score ${gradeInfo.score}/100).`);
+
+  // 2. Strengths
+  const strengths = [];
+  if(isFinite(c.currentRatio) && c.currentRatio >= 1.5) strengths.push(`a current ratio of ${xStr(c.currentRatio)}, indicating comfortable short-term liquidity`);
+  if(isFinite(c.netMargin) && c.netMargin >= 0.10) strengths.push(`a net margin of ${pctStr(c.netMargin)}, above what's typical for most operating businesses`);
+  if(isFinite(c.roe) && c.roe >= 0.15) strengths.push(`return on equity of ${pctStr(c.roe)}, suggesting efficient use of shareholder capital`);
+  if(isFinite(c.debtToEquity) && c.debtToEquity <= 0.6) strengths.push(`a conservative debt-to-equity ratio of ${xStr(c.debtToEquity)}`);
+  if(isFinite(c.interestCoverage) && c.interestCoverage >= 6) strengths.push(`strong interest coverage of ${xStr(c.interestCoverage)}, leaving ample buffer to service debt`);
+  if(isFinite(c.netMargin) && isFinite(p.netMargin) && c.netMargin > p.netMargin) strengths.push(`net margin improving year-over-year, from ${pctStr(p.netMargin)} to ${pctStr(c.netMargin)}`);
+  if(strengths.length === 0) strengths.push('no standout strengths emerge from the ratios computed — figures sit in a middling range across the board');
+  sentences.push(`On the positive side, the model points to ${strengths.slice(0,3).join('; ')}.`);
+
+  // 3. Risks
+  const risks = [];
+  if(isFinite(c.currentRatio) && c.currentRatio < 1) risks.push(`a current ratio below 1× (${xStr(c.currentRatio)}), meaning current liabilities exceed current assets`);
+  if(isFinite(c.netMargin) && c.netMargin < 0.05) risks.push(`a thin net margin of ${pctStr(c.netMargin)}, leaving little cushion against cost shocks`);
+  if(isFinite(c.debtToEquity) && c.debtToEquity > 1.2) risks.push(`elevated leverage at ${xStr(c.debtToEquity)} debt-to-equity`);
+  if(isFinite(c.interestCoverage) && c.interestCoverage < 2.5) risks.push(`weak interest coverage of ${xStr(c.interestCoverage)}, a warning sign for debt servicing capacity`);
+  if(isFinite(c.roe) && isFinite(p.roe) && c.roe < p.roe) risks.push(`return on equity declining from ${pctStr(p.roe)} to ${pctStr(c.roe)}`);
+  if(risks.length === 0) risks.push('no acute red flags in the ratios provided, though the model only sees two periods of data and cannot assess longer-term trend durability');
+  sentences.push(`On the watch-list side: ${risks.slice(0,3).join('; ')}.`);
+
+  // 4. Valuation line
+  if(d && isFinite(d.equityValue)){
+    sentences.push(`The DCF model, run at a ${(d.wacc*100).toFixed(1)}% discount rate with ${(d.growth*100).toFixed(1)}% near-term growth and ${(d.term*100).toFixed(1)}% terminal growth, implies an intrinsic equity value of approximately ${fmt(d.equityValue)} ${unit}${isFinite(d.perShare) ? ` (${fmt(d.perShare)} ${unit} per share)` : ''}. This is highly sensitive to the growth and discount rate assumptions used, and should be stress-tested against a range of scenarios rather than read as a single number.`);
+  }
+
+  // 5. Disclaimer
+  sentences.push(`This note is generated entirely by rule-based logic from the ratios and DCF inputs above — no AI or external model was used to produce it. It is an educational, model-driven analysis only, not investment advice.`);
+
+  return sentences.join('\n\n');
+}
+
+function generateReport(){
+  if(!lastRatios){
+    alert('Run "Calculate ratios & valuation" first.');
+    return;
+  }
+  const btn = document.getElementById('generateBtn');
+  const body = document.getElementById('reportBody');
+  btn.disabled = true;
+  btn.textContent = 'Drafting…';
+  body.classList.remove('placeholder');
+
+  const company = document.getElementById('companyName').value || 'The company';
+  const unit = document.getElementById('currencyUnit').value || 'units';
+  const c = lastRatios.current, p = lastRatios.previous;
+  const d = lastDCF;
+  const gradeInfo = computeGrade(c);
+
+  // small delay purely for UX — this is synchronous local computation, not a network call
+  setTimeout(() => {
+    body.textContent = buildCommentary(company, unit, c, p, d, gradeInfo);
+    btn.disabled = false;
+    btn.textContent = 'Regenerate analyst note';
+  }, 350);
+}
+</script>
+</body>
+</html>
