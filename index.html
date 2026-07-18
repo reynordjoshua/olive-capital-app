@@ -140,6 +140,23 @@ input[type=range]{ width:100%; accent-color:var(--emerald); }
 .dcf-row{ display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
 .dcf-row:last-child{ border-bottom:none; }
 .dcf-row .v{ font-family:'IBM Plex Mono',monospace; }
+.dcf-warning{ background:rgba(176,83,42,0.1); border:1px solid var(--rust); color:#E8B49A; padding:14px 16px; border-radius:var(--radius); font-size:13px; line-height:1.6; }
+.dcf-warning em{ color:var(--rust); font-style:normal; font-weight:600; }
+
+.sens-wrap{ margin-top:1px; background:var(--panel); border:1px solid var(--border); padding:22px; }
+.sens-table{ border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:12px; width:100%; }
+.sens-table th, .sens-table td{ padding:8px 10px; text-align:center; border:1px solid var(--border); color:var(--text-dim); }
+.sens-table th{ color:var(--gold); font-weight:600; }
+.sens-table .sens-corner{ color:var(--text-dim); font-size:10px; }
+.sens-table td{ color:var(--text); }
+.sens-table .sens-center{ background:rgba(47,143,111,0.18); color:var(--emerald); font-weight:600; }
+
+/* ratio color coding */
+.r-good{ color:var(--emerald); }
+.r-bad{ color:var(--rust); }
+.r-mid{ color:var(--gold); }
+.info-dot{ font-size:10px; color:var(--text-dim); cursor:help; }
+.avg-tag{ font-size:9px; color:var(--gold); border:1px solid var(--gold); border-radius:8px; padding:1px 5px; margin-left:4px; vertical-align:middle; text-transform:uppercase; letter-spacing:.04em; }
 
 /* ---------- REPORT / PAPER ---------- */
 .report-panel{ background:var(--paper); color:var(--ink-on-paper); border-radius:var(--radius); padding:0; position:relative; overflow:hidden; }
@@ -303,7 +320,7 @@ footer a:hover{ color:var(--emerald); }
 <section class="block" id="dcfSection">
   <div class="wrap">
     <div class="section-head"><span class="section-num">03</span><h2>Discounted cash flow valuation</h2></div>
-    <p class="section-sub">Base year free cash flow is projected forward, discounted at your chosen WACC, and combined with a terminal value. Adjust the assumptions live.</p>
+    <p class="section-sub">Base year free cash flow (Operating Cash Flow − CapEx) is projected forward, discounted at your chosen WACC, and combined with a terminal value. Requires cash flow data — DCF values cash, not accounting profit.</p>
     <div class="dcf-layout">
       <div class="dcf-col">
         <div class="slider-row">
@@ -320,14 +337,16 @@ footer a:hover{ color:var(--emerald); }
         </div>
         <div class="fcf-bars" id="fcfBars"></div>
       </div>
-      <div class="dcf-col">
+      <div class="dcf-col" id="dcfOutputCol">
         <div class="output-label">Estimated intrinsic equity value</div>
-        <div class="output-big mono" id="equityValueOut">—</div>
-        <div class="dcf-row"><span>Enterprise value</span><span class="v" id="evOut">—</span></div>
-        <div class="dcf-row"><span>Net debt</span><span class="v" id="netDebtOut">—</span></div>
-        <div class="dcf-row"><span>Equity value</span><span class="v" id="eqOut">—</span></div>
-        <div class="dcf-row"><span>Per share (if shares given)</span><span class="v" id="perShareOut">—</span></div>
+        <div class="output-big mono">—</div>
+        <div class="dcf-row"><span>Run the calculation above to populate this panel.</span><span class="v"></span></div>
       </div>
+    </div>
+
+    <div class="sens-wrap">
+      <div class="output-label" style="margin-bottom:10px;">Sensitivity — enterprise value by WACC × terminal growth</div>
+      <div id="sensitivityMatrix"></div>
     </div>
   </div>
 </section>
@@ -447,13 +466,29 @@ function computePeriod(p){
     workingCapital: ca-cl,
     grossMargin: rev ? (rev-cogs)/rev : NaN,
     netMargin: rev ? netIncome/rev : NaN,
-    roe: te ? netIncome/te : NaN,
-    roa: ta ? netIncome/ta : NaN,
     debtToEquity: te ? debt/te : NaN,
     interestCoverage: interest ? ebit/interest : NaN,
-    assetTurnover: ta ? rev/ta : NaN,
     ebit, netIncome, rev, cash, debt, ta, te
   };
+}
+
+// ROE, ROA and asset turnover are computed on AVERAGE balances (avg of this period's
+// and the prior period's closing balance), not closing balances alone — closing-balance
+// ratios overstate/understate return whenever the balance sheet moved a lot in-year.
+// The prior period has no earlier period to average against, so it falls back to its
+// own closing balance and is flagged as such in the UI.
+function computeDerivedRatios(c, p){
+  const avgTE = (c.te + p.te) / 2;
+  const avgTA = (c.ta + p.ta) / 2;
+  c.roe = avgTE ? c.netIncome/avgTE : NaN;
+  c.roa = avgTA ? c.netIncome/avgTA : NaN;
+  c.assetTurnover = avgTA ? c.rev/avgTA : NaN;
+  c.usesAverage = true;
+
+  p.roe = p.te ? p.netIncome/p.te : NaN;
+  p.roa = p.ta ? p.netIncome/p.ta : NaN;
+  p.assetTurnover = p.ta ? p.rev/p.ta : NaN;
+  p.usesAverage = false;
 }
 
 function trendArrow(curr, prev, higherIsBetter=true){
@@ -464,31 +499,73 @@ function trendArrow(curr, prev, higherIsBetter=true){
   return `<span class="ratio-trend ${good?'trend-up':'trend-down'}">${arrow} vs prior</span>`;
 }
 
+// ---------- COLOR CODING + TOOLTIPS ----------
+// Thresholds mirror the ones used in computeGrade so the color a ratio shows
+// always agrees with how it's scored in the report below.
+const RATIO_META = {
+  currentRatio:   { tip:'Current assets ÷ current liabilities. Above 1.5× is generally comfortable.', good:v=>v>=1.5, bad:v=>v<1 },
+  quickRatio:     { tip:'(Current assets − inventory) ÷ current liabilities. Tests liquidity without relying on selling stock.', good:v=>v>=1, bad:v=>v<0.7 },
+  workingCapital: { tip:'Current assets − current liabilities, in absolute currency.', good:v=>v>0, bad:v=>v<0 },
+  grossMargin:    { tip:'(Revenue − COGS) ÷ Revenue.', good:v=>v>=0.3, bad:v=>v<0.1 },
+  netMargin:      { tip:'Net income ÷ Revenue.', good:v=>v>=0.1, bad:v=>v<0.02 },
+  roe:            { tip:'Net income ÷ average total equity (avg of this and prior year-end balances).', good:v=>v>=0.15, bad:v=>v<0.05 },
+  roa:            { tip:'Net income ÷ average total assets.', good:v=>v>=0.08, bad:v=>v<0.02 },
+  debtToEquity:   { tip:'Total debt ÷ total equity. Lower is generally safer.', good:v=>v<=0.6, bad:v=>v>1.2, invert:true },
+  interestCoverage:{ tip:'EBIT ÷ interest expense. Below 2.5× signals difficulty servicing debt; negative means operating losses.', good:v=>v>=4, bad:v=>v<2.5 },
+  assetTurnover:  { tip:'Revenue ÷ average total assets. Measures how efficiently assets generate sales.', good:v=>v>=1, bad:v=>v<0.4 }
+};
+function ratioColorClass(key, val){
+  const meta = RATIO_META[key];
+  if(!meta || !isFinite(val)) return '';
+  if(meta.bad(val)) return 'r-bad';
+  if(meta.good(val)) return 'r-good';
+  return 'r-mid';
+}
+
 function renderRatios(c, p){
   const groups = document.getElementById('ratioGroups');
+  const cell = (key, label, valStr, curr, prev, higherBetter=true) => {
+    const cls = ratioColorClass(key, curr);
+    const tip = RATIO_META[key] ? RATIO_META[key].tip : '';
+    return `<div class="ratio-item"><div class="ratio-label" title="${tip}">${label} <span class="info-dot" title="${tip}">ⓘ</span></div><div class="ratio-value mono ${cls}">${valStr}${trendArrow(curr,prev,higherBetter)}</div></div>`;
+  };
   groups.innerHTML = `
     <div class="ratio-cat"><h3>Liquidity</h3>
-      <div class="ratio-item"><div class="ratio-label">Current ratio</div><div class="ratio-value mono">${fmt(c.currentRatio)}×${trendArrow(c.currentRatio,p.currentRatio)}</div></div>
-      <div class="ratio-item"><div class="ratio-label">Quick ratio</div><div class="ratio-value mono">${fmt(c.quickRatio)}×${trendArrow(c.quickRatio,p.quickRatio)}</div></div>
-      <div class="ratio-item"><div class="ratio-label">Working capital</div><div class="ratio-value mono">${fmt(c.workingCapital)}${trendArrow(c.workingCapital,p.workingCapital)}</div></div>
+      ${cell('currentRatio','Current ratio', fmt(c.currentRatio)+'×', c.currentRatio, p.currentRatio)}
+      ${cell('quickRatio','Quick ratio', fmt(c.quickRatio)+'×', c.quickRatio, p.quickRatio)}
+      ${cell('workingCapital','Working capital', fmt(c.workingCapital), c.workingCapital, p.workingCapital)}
     </div>
     <div class="ratio-cat"><h3>Profitability</h3>
-      <div class="ratio-item"><div class="ratio-label">Gross margin</div><div class="ratio-value mono">${pct(c.grossMargin)}${trendArrow(c.grossMargin,p.grossMargin)}</div></div>
-      <div class="ratio-item"><div class="ratio-label">Net margin</div><div class="ratio-value mono">${pct(c.netMargin)}${trendArrow(c.netMargin,p.netMargin)}</div></div>
-      <div class="ratio-item"><div class="ratio-label">Return on equity</div><div class="ratio-value mono">${pct(c.roe)}${trendArrow(c.roe,p.roe)}</div></div>
-      <div class="ratio-item"><div class="ratio-label">Return on assets</div><div class="ratio-value mono">${pct(c.roa)}${trendArrow(c.roa,p.roa)}</div></div>
+      ${cell('grossMargin','Gross margin', pct(c.grossMargin), c.grossMargin, p.grossMargin)}
+      ${cell('netMargin','Net margin', pct(c.netMargin), c.netMargin, p.netMargin)}
+      ${cell('roe','Return on equity'+(c.usesAverage?' <span class="avg-tag">avg</span>':''), pct(c.roe), c.roe, p.roe)}
+      ${cell('roa','Return on assets'+(c.usesAverage?' <span class="avg-tag">avg</span>':''), pct(c.roa), c.roa, p.roa)}
     </div>
     <div class="ratio-cat"><h3>Leverage</h3>
-      <div class="ratio-item"><div class="ratio-label">Debt-to-equity</div><div class="ratio-value mono">${fmt(c.debtToEquity)}×${trendArrow(c.debtToEquity,p.debtToEquity,false)}</div></div>
-      <div class="ratio-item"><div class="ratio-label">Interest coverage</div><div class="ratio-value mono">${fmt(c.interestCoverage)}×${trendArrow(c.interestCoverage,p.interestCoverage)}</div></div>
+      ${cell('debtToEquity','Debt-to-equity', fmt(c.debtToEquity)+'×', c.debtToEquity, p.debtToEquity, false)}
+      ${cell('interestCoverage','Interest coverage', fmt(c.interestCoverage)+'×', c.interestCoverage, p.interestCoverage)}
     </div>
     <div class="ratio-cat"><h3>Efficiency</h3>
-      <div class="ratio-item"><div class="ratio-label">Asset turnover</div><div class="ratio-value mono">${fmt(c.assetTurnover)}×${trendArrow(c.assetTurnover,p.assetTurnover)}</div></div>
+      ${cell('assetTurnover','Asset turnover'+(c.usesAverage?' <span class="avg-tag">avg</span>':''), fmt(c.assetTurnover)+'×', c.assetTurnover, p.assetTurnover)}
     </div>
   `;
 }
 
 // ---------- DCF ENGINE ----------
+function dcfMath(baseFCF, wacc, growth, term){
+  let pvSum = 0, fcf = baseFCF;
+  const yearly = [];
+  for(let y=1; y<=5; y++){
+    fcf = fcf * (1+growth);
+    const pv = fcf / Math.pow(1+wacc, y);
+    pvSum += pv;
+    yearly.push({year:y, fcf, pv});
+  }
+  const tv = (fcf * (1+term)) / (wacc - term);
+  const pvTV = tv / Math.pow(1+wacc, 5);
+  return { yearly, pvSum, pvTV, ev: pvSum + pvTV };
+}
+
 function updateDCF(){
   const wacc = document.getElementById('waccSlider').value/100;
   const growth = document.getElementById('growthSlider').value/100;
@@ -499,56 +576,124 @@ function updateDCF(){
 
   if(!lastRatios){ return; }
 
+  const dcfCol = document.getElementById('dcfOutputCol');
+  const ocfEntered = document.getElementById('ocf_c').value !== '';
+  const capexEntered = document.getElementById('capex_c').value !== '';
+
+  if(!ocfEntered || !capexEntered){
+    lastDCF = null;
+    dcfCol.innerHTML = `<div class="dcf-warning">DCF cannot be calculated because Operating Cash Flow and/or Capital Expenditure are unavailable. A DCF values <em>free cash flow</em>, not accounting profit — enter both cash flow line items above to unlock this valuation.</div>`;
+    document.getElementById('fcfBars').innerHTML = '';
+    return;
+  }
+
+  if(wacc <= term){
+    lastDCF = null;
+    dcfCol.innerHTML = `<div class="dcf-warning">Terminal growth (${pct(term)}) must be lower than WACC (${pct(wacc)}) — otherwise the terminal value formula divides by zero or a negative number. Lower terminal growth or raise WACC.</div>`;
+    document.getElementById('fcfBars').innerHTML = '';
+    return;
+  }
+
   const baseFCF = num('ocf_c') - num('capex_c');
   const cash = num('cash_c'), debt = num('debt_c'), shares = num('shares_c');
 
-  let pvSum = 0;
-  const yearly = [];
-  let fcf = baseFCF;
-  for(let y=1; y<=5; y++){
-    fcf = fcf * (1+growth);
-    const pv = fcf / Math.pow(1+wacc, y);
-    pvSum += pv;
-    yearly.push({year:y, fcf, pv});
-  }
-  const tv = (fcf * (1+term)) / (wacc - term);
-  const pvTV = tv / Math.pow(1+wacc, 5);
-  const ev = pvSum + pvTV;
+  const { yearly, pvTV, ev } = dcfMath(baseFCF, wacc, growth, term);
   const netDebt = debt - cash;
   const equityValue = ev - netDebt;
   const perShare = shares ? equityValue/shares : NaN;
 
-  lastDCF = {yearly, pvTV, ev, netDebt, equityValue, perShare, wacc, growth, term};
+  lastDCF = {yearly, pvTV, ev, netDebt, equityValue, perShare, wacc, growth, term, baseFCF};
 
-  document.getElementById('equityValueOut').textContent = fmt(equityValue);
-  document.getElementById('evOut').textContent = fmt(ev);
-  document.getElementById('netDebtOut').textContent = fmt(netDebt);
-  document.getElementById('eqOut').textContent = fmt(equityValue);
-  document.getElementById('perShareOut').textContent = shares ? fmt(perShare) : '— (add shares)';
+  dcfCol.innerHTML = `
+    <div class="output-label">Estimated intrinsic equity value</div>
+    <div class="output-big mono" id="equityValueOut">${fmt(equityValue)}</div>
+    <div class="dcf-row"><span>Base year FCF (OCF − CapEx)</span><span class="v">${fmt(baseFCF)}</span></div>
+    <div class="dcf-row"><span>Enterprise value</span><span class="v">${fmt(ev)}</span></div>
+    <div class="dcf-row"><span>Net debt</span><span class="v">${fmt(netDebt)}</span></div>
+    <div class="dcf-row"><span>Equity value</span><span class="v">${fmt(equityValue)}</span></div>
+    <div class="dcf-row"><span>Per share (if shares given)</span><span class="v">${shares ? fmt(perShare) : '— (add shares)'}</span></div>
+  `;
+  if(baseFCF <= 0){
+    dcfCol.innerHTML += `<div class="dcf-warning" style="margin-top:14px;">Base year free cash flow is zero or negative (${fmt(baseFCF)}). The valuation above is mathematically produced but not economically meaningful until the business generates positive free cash flow — treat it as directional only.</div>`;
+  }
 
   const bars = document.getElementById('fcfBars');
-  const maxPv = Math.max(...yearly.map(y=>y.pv), 1);
+  const maxPv = Math.max(...yearly.map(y=>Math.abs(y.pv)), 1);
   bars.innerHTML = yearly.map(y => {
-    const h = Math.max(6, (y.pv/maxPv)*100);
+    const h = Math.max(6, (Math.abs(y.pv)/maxPv)*100);
     return `<div class="fcf-bar" style="height:${h}%;"><span>Y${y.year}</span></div>`;
   }).join('');
+
+  renderSensitivity(baseFCF, wacc, term);
+}
+
+// WACC × terminal-growth sensitivity matrix — shows how much the valuation swings
+// with the two assumptions an analyst would stress-test first.
+function renderSensitivity(baseFCF, waccCenter, termCenter){
+  const el = document.getElementById('sensitivityMatrix');
+  if(!el) return;
+  const waccSteps = [waccCenter-0.02, waccCenter-0.01, waccCenter, waccCenter+0.01, waccCenter+0.02].filter(w=>w>0.01);
+  const termSteps = [termCenter-0.02, termCenter-0.01, termCenter, termCenter+0.01, termCenter+0.02].filter(t=>t>=0);
+  const growth = document.getElementById('growthSlider').value/100;
+
+  let html = `<table class="sens-table"><tr><td class="sens-corner">WACC \\ Term. g</td>` +
+    termSteps.map(t=>`<th>${pct(t)}</th>`).join('') + `</tr>`;
+  waccSteps.forEach(w=>{
+    html += `<tr><th>${pct(w)}</th>`;
+    termSteps.forEach(t=>{
+      let cellVal = '—';
+      if(w > t){
+        const { ev } = dcfMath(baseFCF, w, growth, t);
+        cellVal = fmt(ev);
+      }
+      const isCenter = Math.abs(w-waccCenter)<0.001 && Math.abs(t-termCenter)<0.001;
+      html += `<td class="${isCenter?'sens-center':''}">${cellVal}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+  el.innerHTML = html;
 }
 
 // ---------- SCORE / GRADE ----------
+// Additive 0-100 scale (no baseline offset) so the numeric score and the letter grade
+// band always agree — a 38/100 will always land in the D/F range, never "B".
 function computeGrade(c){
-  let score = 50;
-  if(isFinite(c.currentRatio)) score += (c.currentRatio >= 1.5 ? 10 : c.currentRatio >= 1 ? 4 : -10);
-  if(isFinite(c.netMargin)) score += (c.netMargin >= 0.12 ? 12 : c.netMargin >= 0.05 ? 5 : c.netMargin >= 0 ? -2 : -14);
-  if(isFinite(c.roe)) score += (c.roe >= 0.18 ? 10 : c.roe >= 0.1 ? 4 : -6);
-  if(isFinite(c.debtToEquity)) score += (c.debtToEquity <= 0.6 ? 10 : c.debtToEquity <= 1.2 ? 2 : -10);
-  if(isFinite(c.interestCoverage)) score += (c.interestCoverage >= 6 ? 8 : c.interestCoverage >= 2.5 ? 2 : -12);
-  score = Math.max(0, Math.min(100, score));
+  let score = 0;
+
+  // Liquidity — up to 15
+  if(isFinite(c.currentRatio)){
+    score += c.currentRatio >= 2 ? 15 : c.currentRatio >= 1.5 ? 12 : c.currentRatio >= 1 ? 7 : c.currentRatio >= 0.75 ? 3 : 0;
+  }
+  // Net margin — up to 20
+  if(isFinite(c.netMargin)){
+    score += c.netMargin >= 0.15 ? 20 : c.netMargin >= 0.10 ? 16 : c.netMargin >= 0.05 ? 10 : c.netMargin >= 0 ? 5 : 0;
+  }
+  // ROE — up to 20
+  if(isFinite(c.roe)){
+    score += c.roe >= 0.20 ? 20 : c.roe >= 0.15 ? 16 : c.roe >= 0.10 ? 10 : c.roe >= 0 ? 5 : 0;
+  }
+  // Leverage — up to 15 (lower debt/equity is better)
+  if(isFinite(c.debtToEquity)){
+    score += c.debtToEquity <= 0.3 ? 15 : c.debtToEquity <= 0.6 ? 12 : c.debtToEquity <= 1.0 ? 8 : c.debtToEquity <= 1.5 ? 3 : 0;
+  }
+  // Interest coverage — up to 20
+  if(isFinite(c.interestCoverage)){
+    score += c.interestCoverage >= 8 ? 20 : c.interestCoverage >= 4 ? 14 : c.interestCoverage >= 2 ? 8 : c.interestCoverage >= 1 ? 3 : 0;
+  }
+  // Asset turnover — up to 10
+  if(isFinite(c.assetTurnover)){
+    score += c.assetTurnover >= 1.5 ? 10 : c.assetTurnover >= 1.0 ? 7 : c.assetTurnover >= 0.5 ? 4 : 1;
+  }
+
+  score = Math.round(Math.max(0, Math.min(100, score)));
   let grade;
-  if(score >= 85) grade = 'AA';
-  else if(score >= 70) grade = 'A';
-  else if(score >= 55) grade = 'BBB';
-  else if(score >= 40) grade = 'BB';
-  else grade = 'B';
+  if(score >= 90) grade = 'A+';
+  else if(score >= 80) grade = 'A';
+  else if(score >= 70) grade = 'B';
+  else if(score >= 60) grade = 'C';
+  else if(score >= 50) grade = 'D';
+  else grade = 'F';
   return {score, grade};
 }
 
@@ -559,6 +704,7 @@ document.getElementById('copyrightLine').textContent = `© ${new Date().getFullY
 function runAnalysis(){
   const c = computePeriod('c');
   const p = computePeriod('p');
+  computeDerivedRatios(c, p);
   lastRatios = {current:c, previous:p};
   renderRatios(c, p);
   updateDCF();
@@ -575,47 +721,61 @@ function runAnalysis(){
   document.getElementById('ratioSection').scrollIntoView({behavior:'smooth'});
 }
 
-// ---------- RULE-BASED COMMENTARY ENGINE (no AI, no API, works fully offline) ----------
+// ---------- RULE-BASED COMMENTARY ENGINE (no AI, no external model — pure JS logic) ----------
 function buildCommentary(company, unit, c, p, d, gradeInfo){
   const pctStr = n => isFinite(n) ? (n*100).toFixed(1)+'%' : 'not available';
   const xStr = n => isFinite(n) ? n.toFixed(2)+'×' : 'not available';
   const sentences = [];
 
-  // 1. Verdict
-  const verdictWord = gradeInfo.score >= 70 ? 'financially sound'
-                     : gradeInfo.score >= 55 ? 'reasonably stable with pockets of risk'
-                     : gradeInfo.score >= 40 ? 'under moderate financial strain'
-                     : 'showing significant financial stress';
-  sentences.push(`${company} appears ${verdictWord} on the metrics computed here, corresponding to a model-assigned grade of ${gradeInfo.grade} (score ${gradeInfo.score}/100).`);
+  // 1. Verdict — professional register, grounded in the specific drivers
+  const verdictClause = gradeInfo.score >= 80 ? 'exhibits strong, well-balanced financial fundamentals'
+                       : gradeInfo.score >= 70 ? 'exhibits sound fundamentals with a small number of items worth monitoring'
+                       : gradeInfo.score >= 60 ? 'exhibits adequate short-term liquidity alongside emerging pressure on profitability or returns'
+                       : gradeInfo.score >= 50 ? 'exhibits weakening profitability and returns despite maintaining some balance sheet stability'
+                       : 'exhibits material deterioration in earnings quality and balance sheet strength';
+  sentences.push(`Based on the reported financial statements, ${company} ${verdictClause}. The model assigns a grade of ${gradeInfo.grade} (${gradeInfo.score}/100) on this data set.`);
 
   // 2. Strengths
   const strengths = [];
-  if(isFinite(c.currentRatio) && c.currentRatio >= 1.5) strengths.push(`a current ratio of ${xStr(c.currentRatio)}, indicating comfortable short-term liquidity`);
-  if(isFinite(c.netMargin) && c.netMargin >= 0.10) strengths.push(`a net margin of ${pctStr(c.netMargin)}, above what's typical for most operating businesses`);
-  if(isFinite(c.roe) && c.roe >= 0.15) strengths.push(`return on equity of ${pctStr(c.roe)}, suggesting efficient use of shareholder capital`);
+  if(isFinite(c.currentRatio) && c.currentRatio >= 1.5) strengths.push(`a current ratio of ${xStr(c.currentRatio)}, indicating adequate short-term liquidity`);
+  if(isFinite(c.netMargin) && c.netMargin >= 0.10) strengths.push(`a net margin of ${pctStr(c.netMargin)}, above what is typical for most operating businesses`);
+  if(isFinite(c.roe) && c.roe >= 0.15) strengths.push(`return on average equity of ${pctStr(c.roe)}, suggesting efficient use of shareholder capital`);
   if(isFinite(c.debtToEquity) && c.debtToEquity <= 0.6) strengths.push(`a conservative debt-to-equity ratio of ${xStr(c.debtToEquity)}`);
-  if(isFinite(c.interestCoverage) && c.interestCoverage >= 6) strengths.push(`strong interest coverage of ${xStr(c.interestCoverage)}, leaving ample buffer to service debt`);
+  if(isFinite(c.interestCoverage) && c.interestCoverage >= 6) strengths.push(`interest coverage of ${xStr(c.interestCoverage)}, leaving a comfortable buffer to service debt`);
   if(isFinite(c.netMargin) && isFinite(p.netMargin) && c.netMargin > p.netMargin) strengths.push(`net margin improving year-over-year, from ${pctStr(p.netMargin)} to ${pctStr(c.netMargin)}`);
-  if(strengths.length === 0) strengths.push('no standout strengths emerge from the ratios computed — figures sit in a middling range across the board');
-  sentences.push(`On the positive side, the model points to ${strengths.slice(0,3).join('; ')}.`);
+  const strengthLine = strengths.length
+    ? `Areas of relative strength include ${strengths.slice(0,3).join('; ')}.`
+    : `No ratio in this data set clears the threshold for a notable strength — figures sit in a middling range across liquidity, profitability, and leverage.`;
+  sentences.push(strengthLine);
 
-  // 3. Risks
+  // 3. Risks — with explicit causal explanation for negative interest coverage, not just a label
   const risks = [];
   if(isFinite(c.currentRatio) && c.currentRatio < 1) risks.push(`a current ratio below 1× (${xStr(c.currentRatio)}), meaning current liabilities exceed current assets`);
-  if(isFinite(c.netMargin) && c.netMargin < 0.05) risks.push(`a thin net margin of ${pctStr(c.netMargin)}, leaving little cushion against cost shocks`);
+  if(isFinite(c.netMargin) && c.netMargin < 0.05) risks.push(`a thin${c.netMargin<0?' negative':''} net margin of ${pctStr(c.netMargin)}, leaving little to no cushion against cost shocks`);
   if(isFinite(c.debtToEquity) && c.debtToEquity > 1.2) risks.push(`elevated leverage at ${xStr(c.debtToEquity)} debt-to-equity`);
-  if(isFinite(c.interestCoverage) && c.interestCoverage < 2.5) risks.push(`weak interest coverage of ${xStr(c.interestCoverage)}, a warning sign for debt servicing capacity`);
+  if(isFinite(c.interestCoverage) && c.interestCoverage < 0){
+    risks.push(`negative interest coverage of ${xStr(c.interestCoverage)} — operating earnings (EBIT) were themselves negative (${fmt(c.ebit)} ${unit}), meaning the business did not generate enough operating profit to cover interest expense, let alone leave a surplus`);
+  } else if(isFinite(c.interestCoverage) && c.interestCoverage < 2.5){
+    risks.push(`weak interest coverage of ${xStr(c.interestCoverage)}, a warning sign for debt-servicing capacity if operating earnings soften further`);
+  }
   if(isFinite(c.roe) && isFinite(p.roe) && c.roe < p.roe) risks.push(`return on equity declining from ${pctStr(p.roe)} to ${pctStr(c.roe)}`);
-  if(risks.length === 0) risks.push('no acute red flags in the ratios provided, though the model only sees two periods of data and cannot assess longer-term trend durability');
-  sentences.push(`On the watch-list side: ${risks.slice(0,3).join('; ')}.`);
+  const riskLine = risks.length
+    ? `Items warranting attention: ${risks.slice(0,3).join('; ')}.`
+    : `No acute red flags surface in the ratios provided, though the model only observes two periods of data and cannot assess the durability of longer-term trends.`;
+  sentences.push(riskLine);
 
-  // 4. Valuation line
+  // 4. Valuation line — only if DCF actually ran
   if(d && isFinite(d.equityValue)){
-    sentences.push(`The DCF model, run at a ${(d.wacc*100).toFixed(1)}% discount rate with ${(d.growth*100).toFixed(1)}% near-term growth and ${(d.term*100).toFixed(1)}% terminal growth, implies an intrinsic equity value of approximately ${fmt(d.equityValue)} ${unit}${isFinite(d.perShare) ? ` (${fmt(d.perShare)} ${unit} per share)` : ''}. This is highly sensitive to the growth and discount rate assumptions used, and should be stress-tested against a range of scenarios rather than read as a single number.`);
+    const fcfNote = d.baseFCF <= 0
+      ? ` Base year free cash flow was zero or negative (${fmt(d.baseFCF)} ${unit}), so this output should be read as directional rather than a defensible fair-value estimate.`
+      : '';
+    sentences.push(`The DCF model, run at a ${(d.wacc*100).toFixed(1)}% discount rate with ${(d.growth*100).toFixed(1)}% near-term growth and ${(d.term*100).toFixed(1)}% terminal growth, implies an intrinsic equity value of approximately ${fmt(d.equityValue)} ${unit}${isFinite(d.perShare) ? ` (${fmt(d.perShare)} ${unit} per share)` : ''}.${fcfNote} This estimate is highly sensitive to the growth and discount rate assumptions — see the sensitivity matrix above before relying on a single figure.`);
+  } else {
+    sentences.push(`A DCF valuation could not be produced from the data provided — it requires both Operating Cash Flow and Capital Expenditure to derive free cash flow, which a DCF values instead of accounting profit. Enter those two line items to unlock a valuation.`);
   }
 
   // 5. Disclaimer
-  sentences.push(`This note is generated entirely by rule-based logic from the ratios and DCF inputs above — no AI or external model was used to produce it. It is an educational, model-driven analysis only, not investment advice.`);
+  sentences.push(`This report is generated automatically from the provided financial statements using predefined financial models and valuation methodologies (ratio analysis and discounted cash flow). It is intended for educational purposes only and does not constitute investment advice.`);
 
   return sentences.join('\n\n');
 }
